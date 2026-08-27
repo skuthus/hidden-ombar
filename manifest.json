@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "skuthus.hidden-om-bar",
+  "name": "Hidden Om-Bar",
+  "version": "1.0.0",
+  "author": "skuthus",
+  "license": "MIT",
+  "homepage": "https://github.com/skuthus/hidden-ombar",
+  "description": "Collapse bar widgets behind a chevron, the way Hidden Bar collapses macOS extras. Click to expand, auto-collapse after a delay, drag to choose what stays visible.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Hidden Om-Bar",
+    "description": "Chevron that hides the widgets before it until you click or hover.",
+    "category": "Status",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "autoHide": true,
+      "autoHideSeconds": 10,
+      "hoverToExpand": false,
+      "hideSide": "before"
+    }
+  }
+}
