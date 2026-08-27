@@ -4,8 +4,6 @@ Collapse Omarchy bar widgets behind a chevron so the bar stays quiet until you n
 
 Inspired by [Hidden Bar](https://github.com/dwarvesf/hidden) for macOS, but this is a different plugin with a different name: it hides **Omarchy shell widgets**, not macOS menu extras.
 
-![Hidden Om-Bar](preview.png)
-
 ## Install
 
 ```bash
