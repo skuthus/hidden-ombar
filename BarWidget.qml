@@ -7,6 +7,9 @@ import "HiddenModel.js" as HiddenModel
 
 // Chevron that conceals neighboring bar widgets until expanded.
 // Place it after the widgets you want to tuck away, then click to peek.
+//
+// Third-party widgets receive PluginBarApi, not the host Bar, so this
+// conceals siblings in the same section row instead of reading moduleSlots.
 BarWidget {
   id: root
   moduleName: "skuthus.hidden-om-bar"
@@ -54,31 +57,48 @@ BarWidget {
   }
 
   function hostSlot() {
-    if (!bar || !bar.moduleSlots) return null
-    var slots = bar.moduleSlots
-    for (var i = 0; i < slots.length; i++) {
-      if (slots[i] && slots[i].activeItem === root) return slots[i]
+    var node = root.parent
+    var hops = 0
+    while (node && hops < 16) {
+      if (node.moduleName && "activeItem" in node) return node
+      node = node.parent
+      hops++
     }
     return null
   }
 
+  function sectionSlots(host) {
+    var node = host
+    var hops = 0
+    while (node && hops < 8) {
+      var found = []
+      var kids = node.children
+      if (kids) {
+        for (var i = 0; i < kids.length; i++) {
+          if (kids[i] && kids[i].moduleName) found.push(kids[i])
+        }
+      }
+      if (found.length > 1) return found
+      node = node.parent
+      hops++
+    }
+    return host ? [host] : []
+  }
+
   function hideableSlots() {
     var host = hostSlot()
-    if (!host || !bar) return []
-    var names = HiddenModel.hideableIds(bar, host.moduleName || root.moduleName, host.region, hideSide)
-    var wanted = {}
-    for (var n = 0; n < names.length; n++) wanted[names[n]] = true
-    var window = typeof bar.slotWindow === "function" ? bar.slotWindow(host) : null
+    if (!host) return []
+    var slots = sectionSlots(host)
     var result = []
-    var slots = bar.moduleSlots
+    var seenHost = false
     for (var i = 0; i < slots.length; i++) {
       var slot = slots[i]
-      if (!slot || slot === host) continue
-      if (slot.region !== host.region) continue
-      if (!wanted[slot.moduleName]) continue
-      if (window && typeof bar.sameWindow === "function" && !bar.sameWindow(bar.slotWindow(slot), window))
+      if (slot === host) {
+        seenHost = true
         continue
-      result.push(slot)
+      }
+      if (hideBefore && !seenHost) result.push(slot)
+      else if (!hideBefore && seenHost) result.push(slot)
     }
     return result
   }
@@ -129,11 +149,24 @@ BarWidget {
     autoHideTimer.start()
   }
 
+  function sectionBusy() {
+    var host = hostSlot()
+    if (!host) return false
+    var slots = sectionSlots(host)
+    for (var i = 0; i < slots.length; i++) {
+      var slot = slots[i]
+      if (!slot) continue
+      if (slot.hovered) return true
+      if (slot.dragSource) return true
+      if (slot.panelOpen) return true
+    }
+    return false
+  }
+
   function shouldDeferCollapse() {
     if (prefsOpen) return true
     if (hover.hovered) return true
-    if (bar && bar.barHovered) return true
-    if (bar && bar.barDragSource) return true
+    if (sectionBusy()) return true
     if (bar && bar.activePopout) return true
     return false
   }
@@ -178,6 +211,7 @@ BarWidget {
 
   onBarChanged: scheduleApply()
   onHideSideChanged: scheduleApply()
+  onParentChanged: scheduleApply()
   Component.onCompleted: {
     scheduleApply()
     startupCollapse.start()
@@ -186,15 +220,7 @@ BarWidget {
 
   Connections {
     target: root.bar
-    function onBarConfigSerialChanged() { root.scheduleApply() }
-    function onModuleSlotsChanged() { root.scheduleApply() }
-    function onBarHoveredChanged() {
-      if (root.bar && root.bar.barHovered) root.bumpAutoHide()
-    }
-    function onBarDragSourceChanged() {
-      if (root.bar && root.bar.barDragSource) root.expand()
-      else root.bumpAutoHide()
-    }
+    function onLayoutConfigChanged() { root.scheduleApply() }
   }
 
   Timer {
