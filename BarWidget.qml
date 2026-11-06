@@ -60,7 +60,11 @@ BarWidget {
     var node = root.parent
     var hops = 0
     while (node && hops < 16) {
-      if (node.moduleName && "activeItem" in node) return node
+      // Omarchy 4.5 pools widgets in a host inside each slot. The host has
+      // moduleName and activeItem too, so require the slot's region as well;
+      // otherwise this widget never finds itself among its section's slots
+      // and conceals the whole section, chevron included.
+      if (node.moduleName && "activeItem" in node && "region" in node) return node
       node = node.parent
       hops++
     }
